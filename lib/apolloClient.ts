@@ -4,9 +4,18 @@ import { onError } from "@apollo/client/link/error";
 
 let apolloClient: ApolloClient<NormalizedCacheObject>
 
-const httpLink = new HttpLink({
-  uri: 'http://localhost:3032/graphql',
-  credentials: 'same-origin',
+const authLink = new ApolloLink((operation, forward) => {
+  const token = process.browser ? localStorage.getItem('token'): '';
+
+  // add the authorization to the headers
+  operation.setContext(({ headers = {} }) => ({
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : "",
+    }
+  }));
+
+  return forward(operation);
 })
 
 const errorLink = onError(({ graphQLErrors, networkError }) => {
@@ -20,18 +29,9 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (networkError) console.log(`[Network error]: ${networkError}`);
 });
 
-const authLink = new ApolloLink((operation, forward) => {
-  const token = process.browser ? localStorage.getItem('token'): '';
-
-  // add the authorization to the headers
-  operation.setContext(({ headers = {} }) => ({
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-    }
-  }));
-
-  return forward(operation);
+const httpLink = new HttpLink({
+  uri: 'http://localhost:3032/graphql',
+  credentials: 'same-origin',
 })
 
 function createApolloClient() {
